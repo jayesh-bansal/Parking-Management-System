@@ -1,0 +1,101 @@
+openapi: 3.0.0
+info:
+  title: Vehicle Parking App API
+  version: 1.0.0
+  description: API documentation for the Vehicle Parking Management System.
+
+servers:
+  - url: http://localhost:5000
+    description: Development server
+
+paths:
+  /api/parking_stats:
+    get:
+      summary: Get Parking Statistics
+      description: |
+        Retrieves parking statistics based on the current user's role.
+        - **Admin Users:** Returns occupancy data (available and occupied spots) for each parking lot.
+        - **Regular Users:** Returns booking history statistics (number of bookings per day) for the last 7 days.
+      security:
+        - cookieAuth: [] # Assumes Flask-Login manages session cookies for authentication
+      responses:
+        '200':
+          description: Successful retrieval of parking statistics.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/AdminParkingStats'
+                  - $ref: '#/components/schemas/UserParkingStats'
+              examples:
+                adminStats:
+                  summary: Example for Admin User
+                  value:
+                    labels: ["Lot A", "Lot B", "Lot C"]
+                    available: [10, 5, 15]
+                    occupied: [2, 7, 3]
+                userStats:
+                  summary: Example for Regular User
+                  value:
+                    labels: ["2024-07-25", "2024-07-24", "2024-07-23"]
+                    bookings: [2, 1, 3]
+        '401':
+          description: Unauthorized - User not logged in.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Access denied!"
+
+components:
+  schemas:
+    AdminParkingStats:
+      type: object
+      properties:
+        labels:
+          type: array
+          items:
+            type: string
+          description: Names of parking lots.
+        available:
+          type: array
+          items:
+            type: integer
+          description: Number of available spots for each lot.
+        occupied:
+          type: array
+          items:
+            type: integer
+          description: Number of occupied spots for each lot.
+      example:
+        labels: ["Downtown Lot", "Airport Parking"]
+        available: [50, 120]
+        occupied: [30, 80]
+
+    UserParkingStats:
+      type: object
+      properties:
+        labels:
+          type: array
+          items:
+            type: string
+            format: date
+          description: Dates of parking bookings.
+        bookings:
+          type: array
+          items:
+            type: integer
+          description: Number of bookings on each date.
+      example:
+        labels: ["2024-07-28", "2024-07-27"]
+        bookings: [1, 2]
+
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: session # Assuming Flask-Login uses a session cookie named 'session'
+      description: Authentication via Flask-Login session cookie.
